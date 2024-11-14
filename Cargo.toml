@@ -1,0 +1,100 @@
+[package]
+name = "coobaxx"
+version = "0.1.0"
+authors = ["Jeremy Delley <jeremy.delley@imex-dtp.com>"]
+edition = "2021"
+license = "MIT OR Apache-2.0"
+
+[dependencies]
+esp-backtrace = { version = "0.14.2", features = [
+  "esp32",
+  "exception-handler",
+  "panic-handler",
+  "println",
+] }
+esp-hal = { version = "0.21.0", features = ["esp32"] }
+esp-println = { version = "0.12.0", features = [
+  "defmt-espflash",
+  "esp32",
+  "uart",
+], default-features = false }
+esp-alloc = { version = "0.5.0" }
+embedded-io = "0.6.1"
+esp-wifi = { version = "0.10.1", features = [
+  "async",
+  "embassy-net",
+  "esp-alloc",
+  "esp32",
+  "phy-enable-usb",
+  "smoltcp",
+  "utils",
+  "wifi",
+  "defmt",
+] }
+heapless = { version = "0.8.0", default-features = false }
+smoltcp = { version = "0.11.0", default-features = false, features = [
+  "medium-ethernet",
+  "proto-dhcpv4",
+  "proto-igmp",
+  "proto-ipv4",
+  "socket-dhcpv4",
+  "socket-icmp",
+  "socket-raw",
+  "socket-tcp",
+  "socket-udp",
+] }
+esp-hal-embassy = { version = "0.4.0", features = [
+  "esp32",
+  "executors",
+  "integrated-timers",
+  "defmt",
+] }
+embassy-executor = { version = "0.6.2", features = [
+  "executor-thread",
+  "task-arena-size-40960",
+] }
+embassy-time = "0.3.2"
+embassy-net = { version = "0.4.0", features = [
+  "dhcpv4",
+  "defmt",
+  "tcp",
+  "dns",
+  "dhcpv4-hostname",
+  "medium-ethernet",
+  "proto-ipv4",
+] }
+static_cell = "2.1.0"
+embedded-nal-async = "0.7.1"
+rust-mqtt = { version = "0.3.0", default-features = false, features = ["log"] }
+embedded-graphics = { version = "0.8.1", features = ["defmt"] }
+ssd1306 = { version = "0.9.0" }
+embedded-hal-bus = { version = "0.2.0", features = ["async"] }
+defmt = "0.3.8"
+embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
+embedded-graphics-core = { version = "0.4.0", features = ["defmt"] }
+display-interface = { version = "0.5.0", features = ["defmt-03"] }
+display-interface-i2c = "0.5.0"
+embassy-sync = { version = "0.6.0", features = ["defmt"] }
+critical-section = "1.2.0"
+
+
+[profile.dev]
+# Rust debug is too slow.
+# For debug builds always builds with some optimization
+opt-level = "s"
+
+[profile.release]
+codegen-units = 1        # LLVM can perform better optimizations using a single thread
+debug = 2
+debug-assertions = false
+incremental = false
+lto = 'fat'
+opt-level = 's'
+overflow-checks = false
+
+[[bin]]
+name = "coubaxx"
+path = "src/main.rs"
+test = false
+doctest = false
+bench = false
