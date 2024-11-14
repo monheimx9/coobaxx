@@ -32,6 +32,9 @@ pub fn init_heap() {
     }
 }
 
+const SSID: Option<&'static str> = core::option_env!("SSID");
+const PASSWORD: Option<&'static str> = core::option_env!("PASSWORD");
+
 pub async fn initialize(
     timg1: TIMG1,
     rng: RNG,
@@ -82,8 +85,8 @@ pub async fn connection(mut controller: WifiController<'static>) {
         }
         if !matches!(controller.is_started(), Ok(true)) {
             let client_config = Configuration::Client(ClientConfiguration {
-                ssid: "".try_into().unwrap(),
-                password: "".try_into().unwrap(),
+                ssid: SSID.unwrap().try_into().unwrap(),
+                password: PASSWORD.unwrap().try_into().unwrap(),
                 ..Default::default()
             });
             controller.set_configuration(&client_config).unwrap();
