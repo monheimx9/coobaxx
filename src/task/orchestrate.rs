@@ -52,6 +52,7 @@ pub async fn scheduler() {
     }
 
     loop {
+        MQTT_SIGNAL_SEND.signal(Commands::MqttSend);
         Timer::after_secs(10).await;
     }
 }

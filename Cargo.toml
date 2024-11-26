@@ -79,6 +79,7 @@ embassy-sync = { version = "0.6.0", features = ["defmt"] }
 critical-section = "1.2.0"
 fugit = { version = "0.3.7", features = ["defmt"] }
 embassy-embedded-hal = { version = "0.2.0", features = ["defmt"] }
+embassy-futures = { version = "0.1.1", features = ["defmt"] }
 
 [build-dependencies]
 dotenvy = { version = "0.15.7" }

@@ -153,6 +153,7 @@ dependencies = [
  "dotenvy",
  "embassy-embedded-hal",
  "embassy-executor",
+ "embassy-futures",
  "embassy-net",
  "embassy-sync 0.6.0",
  "embassy-time",

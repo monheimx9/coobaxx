@@ -7,48 +7,22 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 
 use super::i2c::display::CurrentScreen;
+use super::mqtt::{MessagePriority, MqttMessage};
 use super::task_messages::EVENT_CHANNEL;
 
 type AppStateManager = Mutex<CriticalSectionRawMutex, Option<AppState>>;
 pub static STATE_MANAGER_MUTEX: AppStateManager = Mutex::new(None);
 
-#[derive(Debug)]
-pub enum MessagePriority {
-    Low,
-    Medium,
-    High,
-}
-impl Default for MessagePriority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
-
-#[derive(Debug)]
-pub enum BroadCastTo {
-    Jeremy,
-    Mara,
-    Teresa,
-    All,
-}
-impl Default for BroadCastTo {
-    fn default() -> Self {
-        Self::All
-    }
-}
-
 #[derive(Debug, Default)]
 pub struct AppState {
     screen: Option<CurrentScreen>,
-    message_priority: Option<MessagePriority>,
-    broadcast_to: Option<BroadCastTo>,
+    mqtt_msg: Option<MqttMessage>,
 }
 impl AppState {
     pub fn new() -> Self {
         Self {
             screen: Some(Default::default()),
-            message_priority: Some(Default::default()),
-            broadcast_to: Some(Default::default()),
+            mqtt_msg: Some(Default::default()),
         }
     }
     pub fn change_screen(&mut self, new_s: CurrentScreen) {

@@ -3,6 +3,7 @@
 
 mod init_board;
 
+use esp_hal::prelude::*;
 use esp_hal::{gpio::*, rng::Rng};
 
 use esp_hal::i2c::master::I2c;
@@ -38,6 +39,19 @@ async fn main(spawner: Spawner) -> ! {
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
     esp_hal_embassy::init(timg0.timer0);
 
+    spawner.must_spawn(orchestrator());
+    let gpio32: GpioPin<32> = peripherals.GPIO32;
+    let gpio33: GpioPin<33> = peripherals.GPIO33;
+
+    let sda = gpio32;
+    let scl = gpio33;
+    let i2c: I2cMaster = I2c::new(peripherals.I2C1, Default::default())
+        .with_sda(sda)
+        .with_scl(scl)
+        .into_async();
+
+    spawner.spawn(i2c_manager(i2c)).ok();
+
     let wifi_init = &*mk_static!(
         EspWifiController<'static>,
         esp_wifi::init(
@@ -47,16 +61,6 @@ async fn main(spawner: Spawner) -> ! {
         )
         .unwrap()
     );
-    let gpio32: GpioPin<32> = peripherals.GPIO32;
-    let sda = gpio32;
-    let scl = peripherals.GPIO33;
-    let i2c: I2cMaster = I2c::new(peripherals.I2C1, Default::default())
-        .with_sda(sda)
-        .with_scl(scl)
-        .into_async();
-
-    spawner.must_spawn(orchestrator());
-    spawner.spawn(i2c_manager(i2c)).ok();
 
     let (stack, controller) = initialize_wifi_stack(wifi_init, peripherals.WIFI).await;
 
