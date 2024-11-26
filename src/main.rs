@@ -2,51 +2,63 @@
 #![no_main]
 
 mod init_board;
-use core::cell::RefCell;
 
-use embassy_sync::blocking_mutex::{raw::CriticalSectionRawMutex, Mutex};
-use init_board::{connection, init_heap, initialize, net_task};
+use esp_hal::{gpio::*, rng::Rng};
+
+use esp_hal::i2c::master::I2c;
+
+use esp_wifi::EspWifiController;
+use init_board::{connection, init_heap, initialize_wifi_stack, net_task};
 
 use esp_backtrace as _;
 use esp_println as _;
 
-mod mqtt;
+pub mod utils;
 
 use embassy_executor::Spawner;
-use embassy_time::{Duration, Timer};
+use embassy_time::Timer;
+
 use esp_backtrace as _;
-use mqtt::send_mqtt_message;
 use task::{
-    display::{do_something_else, perform, CurrentScreen},
-    state::AppState,
+    button::handler_clear_btn,
+    i2c::{i2c_manager, I2cMaster},
+    mqtt::mqtt_manager,
+    orchestrate::{orchestrator, scheduler},
 };
+use utils::mk_static;
 
 extern crate alloc;
 
 mod task;
-// use task::display::show_something;
-static APPSTATE: Mutex<CriticalSectionRawMutex, RefCell<AppState>> =
-    Mutex::new(RefCell::new(AppState {
-        screen: Some(CurrentScreen::Home),
-    }));
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
-    #[allow(unused)]
-    let peripherals = esp_hal::init(esp_hal::Config::default());
     init_heap();
+    let peripherals = esp_hal::init(Default::default());
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
     esp_hal_embassy::init(timg0.timer0);
 
-    let (stack, controller) = initialize(
-        peripherals.TIMG1,
-        peripherals.RNG,
-        peripherals.RADIO_CLK,
-        peripherals.WIFI,
-    )
-    .await;
-    spawner.spawn(perform(&APPSTATE)).ok();
-    spawner.spawn(do_something_else(&APPSTATE)).ok();
+    let wifi_init = &*mk_static!(
+        EspWifiController<'static>,
+        esp_wifi::init(
+            timg0.timer1,
+            Rng::new(peripherals.RNG),
+            peripherals.RADIO_CLK,
+        )
+        .unwrap()
+    );
+    let gpio32: GpioPin<32> = peripherals.GPIO32;
+    let sda = gpio32;
+    let scl = peripherals.GPIO33;
+    let i2c: I2cMaster = I2c::new(peripherals.I2C1, Default::default())
+        .with_sda(sda)
+        .with_scl(scl)
+        .into_async();
+
+    spawner.must_spawn(orchestrator());
+    spawner.spawn(i2c_manager(i2c)).ok();
+
+    let (stack, controller) = initialize_wifi_stack(wifi_init, peripherals.WIFI).await;
 
     spawner.spawn(connection(controller)).ok();
     spawner.spawn(net_task(stack)).ok();
@@ -57,11 +69,16 @@ async fn main(spawner: Spawner) -> ! {
             defmt::info!("Got IP: {}", config.address);
             break;
         }
-        Timer::after(Duration::from_millis(500)).await;
+        Timer::after_secs(5).await;
     }
-    send_mqtt_message(stack).await;
+
+    let btn = Input::new(peripherals.GPIO14, Pull::Down);
+
+    spawner.spawn(scheduler()).ok();
+    spawner.spawn(handler_clear_btn(btn)).ok();
+    spawner.spawn(mqtt_manager(stack)).ok();
 
     loop {
-        Timer::after(Duration::from_secs(10)).await;
+        Timer::after_secs(5).await;
     }
 }

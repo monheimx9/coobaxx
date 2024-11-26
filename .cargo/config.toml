@@ -4,7 +4,7 @@ runner = "espflash flash --monitor --log-format defmt"
 
 [env]
 # ESP_LOG = "info"
-DEFMT_LOG = "debug"
+DEFMT_LOG = "info"
 
 [build]
 rustflags = ["-C", "link-arg=-nostartfiles", "-C", "link-arg=-Tdefmt.x"]
