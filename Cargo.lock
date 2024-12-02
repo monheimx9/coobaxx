@@ -102,7 +102,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "57a6508c63d7d137e8188833d9ed3ca97e40d676cf5217874c8c1c24851b012d"
 dependencies = [
  "defmt",
- "embassy-sync 0.6.0",
+ "embassy-sync 0.6.1",
  "embedded-io",
  "embedded-io-async",
  "futures-intrusive",
@@ -155,7 +155,7 @@ dependencies = [
  "embassy-executor",
  "embassy-futures",
  "embassy-net",
- "embassy-sync 0.6.0",
+ "embassy-sync 0.6.1",
  "embassy-time",
  "embedded-graphics",
  "embedded-graphics-core",
@@ -163,16 +163,18 @@ dependencies = [
  "embedded-hal-bus",
  "embedded-io",
  "embedded-nal-async",
+ "embedded-storage",
  "esp-alloc",
  "esp-backtrace",
  "esp-hal",
  "esp-hal-embassy",
  "esp-println",
+ "esp-storage",
  "esp-wifi",
  "fugit",
  "heapless",
  "rust-mqtt",
- "smoltcp",
+ "smoltcp 0.12.0",
  "ssd1306",
  "static_cell",
 ]
@@ -316,7 +318,7 @@ checksum = "5794414bc20e0d750f145bc0e82366b19dd078e9e075e8331fb8dd069a1cb6a2"
 dependencies = [
  "defmt",
  "embassy-futures",
- "embassy-sync 0.6.0",
+ "embassy-sync 0.6.1",
  "embassy-time",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
@@ -380,7 +382,7 @@ dependencies = [
  "generic-array 0.14.7",
  "heapless",
  "managed",
- "smoltcp",
+ "smoltcp 0.11.0",
  "stable_deref_trait",
 ]
 
@@ -408,14 +410,15 @@ dependencies = [
 
 [[package]]
 name = "embassy-sync"
-version = "0.6.0"
+version = "0.6.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "b3e0c49ff02ebe324faf3a8653ba91582e2d0a7fdef5bc88f449d5aa1bfcc05c"
+checksum = "3899a6e39fa3f54bf8aaf00979f9f9c0145a522f7244810533abbb748be6ce82"
 dependencies = [
  "cfg-if",
  "critical-section",
  "defmt",
  "embedded-io-async",
+ "futures-sink",
  "futures-util",
  "heapless",
 ]
@@ -692,7 +695,7 @@ dependencies = [
  "document-features",
  "embassy-embedded-hal",
  "embassy-futures",
- "embassy-sync 0.6.0",
+ "embassy-sync 0.6.1",
  "embedded-can",
  "embedded-hal 0.2.7",
  "embedded-hal 1.0.0",
@@ -797,6 +800,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "esp-storage"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "661aebceb62e0caadd7e6bddd88b2d891c3b08cea4eb5afe96ef697674ccda5c"
+dependencies = [
+ "critical-section",
+ "embedded-storage",
+ "esp-build",
+]
+
+[[package]]
 name = "esp-wifi"
 version = "0.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -808,7 +822,7 @@ dependencies = [
  "defmt",
  "document-features",
  "embassy-net-driver",
- "embassy-sync 0.6.0",
+ "embassy-sync 0.6.1",
  "embedded-io",
  "embedded-io-async",
  "enumset",
@@ -826,7 +840,7 @@ dependencies = [
  "portable-atomic",
  "portable_atomic_enum",
  "rand_core",
- "smoltcp",
+ "smoltcp 0.11.0",
  "xtensa-lx-rt",
 ]
 
@@ -1525,6 +1539,19 @@ dependencies = [
  "byteorder",
  "cfg-if",
  "defmt",
+ "heapless",
+ "managed",
+]
+
+[[package]]
+name = "smoltcp"
+version = "0.12.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "dad095989c1533c1c266d9b1e8d70a1329dd3723c3edac6d03bbd67e7bf6f4bb"
+dependencies = [
+ "bitflags 1.3.2",
+ "byteorder",
+ "cfg-if",
  "heapless",
  "managed",
 ]
