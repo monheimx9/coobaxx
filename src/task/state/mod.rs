@@ -1,9 +1,6 @@
-use core::str::FromStr;
-
 use crate::task::i2c::I2CDevice;
 use crate::task::task_messages::*;
 use esp_backtrace as _;
-use esp_println as _;
 
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
@@ -53,11 +50,15 @@ impl AppState {
         self.screen = Some(new_s);
         I2C_MANAGER_SIGNAL.signal(I2CDevice::Ssd1306Display);
     }
-    pub async fn prepare_mqtt_msg(&mut self) {
+    pub async fn prepare_mqtt_alert(&mut self) {
         let dev_name = self.selected_device_name();
         let pri = MessagePriority::Medium;
         let alert = AlertMessage::new_alert(dev_name, pri);
         self.mqtt_msg = Some(MqttMessage::AlertMessage(alert));
+    }
+    pub async fn send_mqtt_ping(&mut self, p: PingType) {
+        let msg = MqttMessage::PingMessage(PingMessage::new_ping(p));
+        MQTT_SIGNAL_SEND.signal(msg.clone());
     }
     pub async fn clear_alert(&mut self) {
         todo!()
@@ -77,7 +78,7 @@ impl AppState {
                 let num = self.devices.as_ref().map(|f| f.len() as u8).unwrap_or(0_u8);
                 mq.set_number_of_devices(num);
                 mq.select_next_recipient();
-                self.prepare_mqtt_msg().await;
+                self.prepare_mqtt_alert().await;
             }
             CurrentScreen::MessageSent => {}
             CurrentScreen::Alert => {
@@ -101,7 +102,10 @@ impl AppState {
         match msg {
             MqttMessage::AlertMessage(a) => {}
             MqttMessage::PingMessage(p) => match p.ping_type {
-                PingType::Ping => {}
+                PingType::Ping => {
+                    self.add_device(p.device_name);
+                    self.send_mqtt_ping(PingType::Pong).await
+                }
                 PingType::Pong => self.add_device(p.device_name),
                 PingType::Death => self.remove_device(p.device_name),
             },
@@ -139,11 +143,13 @@ impl AppState {
         if let Some(dev) = self.devices.as_mut() {
             if !dev.iter().any(|d| d == &device_name) {
                 let _ = dev.push(device_name.clone());
+                defmt::info!("New device connected");
             }
         } else {
             let mut dev: Vec<String<STRING_SIZE>, MAX_DEVICES> = Vec::new();
             let _ = dev.push(device_name.clone());
             self.devices = Some(dev);
+            defmt::info!("New device connected");
         }
     }
     pub fn remove_device(&mut self, device_name: String<STRING_SIZE>) {

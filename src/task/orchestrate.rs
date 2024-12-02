@@ -4,7 +4,6 @@ use crate::I2CDevice;
 
 use embassy_time::Timer;
 use esp_backtrace as _;
-use esp_println as _;
 
 #[embassy_executor::task]
 pub async fn orchestrator() {
@@ -24,6 +23,9 @@ pub async fn orchestrator() {
             let state_manager = state_manager_guard.as_mut().unwrap();
 
             match event {
+                Events::Starting => {
+                    state_manager.send_mqtt_ping(PingType::Ping).await;
+                }
                 Events::SelectButtonPressed => {
                     defmt::info!("SelectButtonPressed Event received by orchestrator");
                     state_manager.select_btn().await;
@@ -49,6 +51,8 @@ pub async fn scheduler() {
         SCHEDULER_STOP_SIGNAL.reset();
         SCHEDULER_START_SIGNAL.wait().await;
     }
+
+    EVENT_CHANNEL.send(Events::Starting).await;
 
     loop {
         // MQTT_SIGNAL_RECEIVE.signal(());

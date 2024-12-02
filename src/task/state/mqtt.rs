@@ -1,10 +1,8 @@
 use core::str::from_utf8;
 
-use alloc::format;
 use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::mutex::Mutex;
 use esp_backtrace as _;
-use esp_println as _;
 
 use heapless::{String, Vec};
 

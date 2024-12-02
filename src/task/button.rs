@@ -2,7 +2,6 @@ use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, channel::Sender
 use embassy_time::{Duration, Timer};
 use esp_backtrace as _;
 use esp_hal::gpio::{Input, Level};
-use esp_println as _;
 
 use super::task_messages::{Events, EVENT_CHANNEL};
 

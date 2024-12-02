@@ -6,8 +6,7 @@ use esp_hal::{gpio::*, rng::Rng};
 use esp_wifi::EspWifiController;
 extern crate alloc;
 
-use esp_backtrace as _;
-use esp_println as _;
+use {defmt_rtt as _, esp_backtrace as _};
 
 use embassy_executor::Spawner;
 use embassy_time::Timer;
@@ -29,15 +28,16 @@ async fn main(spawner: Spawner) -> ! {
     init_heap();
     let peripherals = esp_hal::init(Default::default());
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
+    let timg1 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg0.timer0);
 
     spawner.must_spawn(orchestrator());
-    let gpio32: GpioPin<32> = peripherals.GPIO32;
-    let gpio33: GpioPin<33> = peripherals.GPIO33;
+    let gpio32: GpioPin<19> = peripherals.GPIO19;
+    let gpio33: GpioPin<20> = peripherals.GPIO20;
 
     let sda = gpio32;
     let scl = gpio33;
-    let i2c: I2cMaster = I2c::new(peripherals.I2C1, Default::default())
+    let i2c: I2cMaster = I2c::new(peripherals.I2C0, Default::default())
         .with_sda(sda)
         .with_scl(scl)
         .into_async();
@@ -47,7 +47,7 @@ async fn main(spawner: Spawner) -> ! {
     let wifi_init = &*mk_static!(
         EspWifiController<'static>,
         esp_wifi::init(
-            timg0.timer1,
+            timg1.timer0,
             Rng::new(peripherals.RNG),
             peripherals.RADIO_CLK,
         )
@@ -68,8 +68,8 @@ async fn main(spawner: Spawner) -> ! {
         Timer::after_secs(5).await;
     }
 
-    let select_btn = Input::new(peripherals.GPIO14, Pull::Down);
-    let send_btn = Input::new(peripherals.GPIO5, Pull::Down);
+    let select_btn = Input::new(peripherals.GPIO10, Pull::Down);
+    let send_btn = Input::new(peripherals.GPIO11, Pull::Down);
 
     spawner.spawn(scheduler()).ok();
     spawner.spawn(handler_select_btn(select_btn)).ok();

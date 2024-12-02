@@ -1,5 +1,4 @@
 use esp_backtrace as _;
-use esp_println as _;
 
 use embassy_net::{Stack, StackResources};
 use embassy_time::{Duration, Timer};
@@ -18,16 +17,17 @@ use core::mem::MaybeUninit;
 
 pub fn init_heap() {
     // 32 * 1024 makes the Wifi Init Fail with EspNoMemErr (it looks like 32 isn't enough)
-    const HEAP_SIZE: usize = 72 * 1024;
-    static mut HEAP: MaybeUninit<[u8; HEAP_SIZE]> = MaybeUninit::uninit();
-
-    unsafe {
-        esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
-            HEAP.as_mut_ptr() as *mut u8,
-            HEAP_SIZE,
-            esp_alloc::MemoryCapability::Internal.into(),
-        ));
-    }
+    // const HEAP_SIZE: usize = 72 * 1024;
+    // static mut HEAP: MaybeUninit<[u8; HEAP_SIZE]> = MaybeUninit::uninit();
+    //
+    // unsafe {
+    //     esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
+    //         HEAP.as_mut_ptr() as *mut u8,
+    //         HEAP_SIZE,
+    //         esp_alloc::MemoryCapability::Internal.into(),
+    //     ));
+    // }
+    esp_alloc::heap_allocator!(72 * 1024);
 }
 pub type WifiStack = &'static Stack<WifiDevice<'static, WifiStaDevice>>;
 

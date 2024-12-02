@@ -13,7 +13,6 @@ use esp_hal::i2c::master::AnyI2c;
 use esp_hal::i2c::master::I2c;
 
 use esp_backtrace as _;
-use esp_println as _;
 use ssd1306::size::DisplaySize128x64;
 use ssd1306::Ssd1306;
 

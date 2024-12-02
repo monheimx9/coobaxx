@@ -6,9 +6,12 @@ use heapless::Vec;
 
 use defmt::{debug, error, info, warn};
 use esp_backtrace as _;
-use esp_println as _;
 
+use embassy_net::tcp::client::TcpConnection;
 use embassy_net::tcp::client::{TcpClient, TcpClientState};
+use embassy_net::tcp::TcpSocket;
+use embassy_net::IpAddress;
+use embassy_net::Ipv4Address;
 use embedded_nal_async::IpAddr;
 use embedded_nal_async::Ipv4Addr;
 use embedded_nal_async::SocketAddr;
@@ -16,8 +19,6 @@ use embedded_nal_async::TcpConnect;
 
 #[allow(unused)]
 use embassy_net::dns::DnsSocket;
-#[allow(unused)]
-use embedded_nal_async::{AddrType, Dns};
 
 use embassy_time::Timer;
 use rust_mqtt::{
@@ -66,10 +67,19 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                     // };
 
                     //TCP Connection
-                    let ip4 = IpAddr::from(Ipv4Addr::from(SERVER_IP));
+
                     let state: TcpClientState<3, POOL_TXRX_SZ, POOL_TXRX_SZ> =
                         TcpClientState::new();
                     let tcp_client = TcpClient::new(stack, &state);
+
+                    // let (mut tx_buff, mut rx_buff) = ([0_u8; 4096], [0_u8; 4096]);
+                    // let mut sock = TcpSocket::new(stack, &mut rx_buff, &mut tx_buff);
+                    // let endpoint = (Ipv4Address::from_bytes(&SERVER_IP), SERVER_PORT);
+                    // sock.connect(endpoint).await.unwrap();
+
+                    let ip4 = IpAddress::from(Ipv4Address::from_bytes(&SERVER_IP));
+
+                    let ip4 = IpAddr::from(Ipv4Addr::from(SERVER_IP));
                     defmt::info!("Getting tcp connection");
                     let tcp_connection = tcp_client
                         .connect(SocketAddr::new(ip4, SERVER_PORT))
@@ -77,6 +87,7 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                         .unwrap();
                     let mut tx_buffer = [0; BUFFER_SIZE];
                     let mut rx_buffer = [0; BUFFER_SIZE];
+
                     //Client config
                     let mut death_payload: String<STRING_SIZE> = String::new();
                     death_payload.push_str("dead=").unwrap();

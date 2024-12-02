@@ -3,13 +3,13 @@ use embassy_sync::blocking_mutex::raw::CriticalSectionRawMutex;
 use embassy_sync::channel::Channel;
 use embassy_sync::signal::Signal;
 use esp_backtrace as _;
-use esp_println as _;
 
 use super::i2c::I2CDevice;
 use super::state::MqttMessage;
 
 #[derive(Debug, Clone)]
 pub enum Events {
+    Starting,
     SelectButtonPressed,
     SendButtonPressed,
     MessageReceived(MqttMessage),

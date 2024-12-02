@@ -3,6 +3,8 @@ use std::{env, fs::File, io::Write, path::Path};
 extern crate dotenvy;
 fn main() {
     println!("cargo:rustc-link-arg-bins=-Tlinkall.x");
+    // println!("cargo:rustc-link-arg-bins=-Trom_functions.x");
+    println!("cargo:rustc-link-arg-bins=-Tdefmt.x");
 
     // println!("cargo:rustc-link-arg-bins=-Trom_functions.x");
     dotenvy::dotenv().unwrap();
