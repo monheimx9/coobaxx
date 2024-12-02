@@ -1,36 +1,28 @@
 #![no_std]
 #![no_main]
 
-mod init_board;
-
-use esp_hal::prelude::*;
-use esp_hal::{gpio::*, rng::Rng};
-
 use esp_hal::i2c::master::I2c;
-
+use esp_hal::{gpio::*, rng::Rng};
 use esp_wifi::EspWifiController;
-use init_board::{connection, init_heap, initialize_wifi_stack, net_task};
+extern crate alloc;
 
 use esp_backtrace as _;
 use esp_println as _;
 
-pub mod utils;
-
 use embassy_executor::Spawner;
 use embassy_time::Timer;
 
-use esp_backtrace as _;
-use task::{
-    button::handler_clear_btn,
-    i2c::{i2c_manager, I2cMaster},
-    mqtt::mqtt_manager,
-    orchestrate::{orchestrator, scheduler},
-};
-use utils::mk_static;
-
-extern crate alloc;
+mod constant;
+pub use constant::*;
 
 mod task;
+use task::{button::*, i2c::*, mqtt::*, orchestrate::*};
+
+pub mod utils;
+use utils::mk_static;
+
+mod init_board;
+use init_board::{connection, init_heap, initialize_wifi_stack, net_task};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
@@ -76,10 +68,12 @@ async fn main(spawner: Spawner) -> ! {
         Timer::after_secs(5).await;
     }
 
-    let btn = Input::new(peripherals.GPIO14, Pull::Down);
+    let select_btn = Input::new(peripherals.GPIO14, Pull::Down);
+    let send_btn = Input::new(peripherals.GPIO5, Pull::Down);
 
     spawner.spawn(scheduler()).ok();
-    spawner.spawn(handler_clear_btn(btn)).ok();
+    spawner.spawn(handler_select_btn(select_btn)).ok();
+    spawner.spawn(handler_send_btn(send_btn)).ok();
     spawner.spawn(mqtt_manager(stack)).ok();
 
     loop {

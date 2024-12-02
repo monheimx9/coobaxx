@@ -19,7 +19,7 @@ pub static I2C_MANAGER: I2cManager = Mutex::new(None);
 
 #[derive(PartialEq, Debug, Format)]
 pub enum I2CDevice {
-    Ssd1306Display(CurrentScreen),
+    Ssd1306Display,
     RtcDs3231(RtcAction),
 }
 
@@ -29,7 +29,7 @@ pub enum RtcAction {
     Write,
 }
 
-#[embassy_executor::task]
+#[embassy_executor::task(pool_size = 1)]
 pub async fn i2c_manager(i2c_m: I2cMaster) {
     defmt::info!("I2C Manager starting");
     {
@@ -47,8 +47,9 @@ pub async fn i2c_manager(i2c_m: I2cMaster) {
             let i2c_guard = i2c.as_mut().unwrap();
 
             match i2c_dev {
-                I2CDevice::Ssd1306Display(screen) => {
-                    draw_display(i2c_guard, &screen).await;
+                I2CDevice::Ssd1306Display => {
+                    defmt::info!("Drawing display");
+                    draw_display(i2c_guard).await;
                     defmt::info!("Display drawed");
                 }
 
@@ -56,8 +57,7 @@ pub async fn i2c_manager(i2c_m: I2cMaster) {
                     // draw_display(i2c_guard).await;
                 }
             }
-
-            drop(i2c_guard);
+            // drop(i2c_guard);
         }
     }
 }

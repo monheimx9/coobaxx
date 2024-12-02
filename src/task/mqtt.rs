@@ -1,11 +1,13 @@
-use defmt::*;
-use embassy_futures::select::select;
-use embassy_futures::select::Either;
-use embassy_net::tcp::client::TcpConnection;
+use core::str::from_utf8;
+use embassy_futures::select::select3;
+use embassy_futures::select::Either3;
+use heapless::String;
+use heapless::Vec;
+
+use defmt::{debug, error, info, warn};
 use esp_backtrace as _;
 use esp_println as _;
 
-use alloc::format;
 use embassy_net::tcp::client::{TcpClient, TcpClientState};
 use embedded_nal_async::IpAddr;
 use embedded_nal_async::Ipv4Addr;
@@ -31,54 +33,22 @@ use rust_mqtt::{
 
 use crate::init_board::WifiStack;
 
-use super::task_messages::MQTT_SIGNAL_RECEIVE;
-use super::task_messages::MQTT_SIGNAL_SEND;
+use crate::constant::STRING_SIZE;
+use crate::constant::{MQTT_SUB_TOPICS, MQTT_SUB_TOPICS_SIZE};
+use crate::task::state::MqttMessage;
+use crate::task::state::CURRENT_DEVICE_NAME;
+use crate::task::task_messages::Events;
+use crate::task::task_messages::EVENT_CHANNEL;
+use crate::task::task_messages::MQTT_SIGNAL_BROKER_PING;
+use crate::task::task_messages::MQTT_SIGNAL_SEND;
 
-const BUFFER_SIZE: usize = 1024;
+const POOL_TXRX_SZ: usize = 256;
+const BUFFER_SIZE: usize = 128;
 const SERVER_IP: [u8; 4] = [10, 100, 3, 2];
 const SERVER_PORT: u16 = 1883;
 
-#[derive(Debug)]
-pub struct MqttMessage {
-    broadcast_to: BroadCastTo,
-    priotity: MessagePriority,
-}
-impl Default for MqttMessage {
-    fn default() -> Self {
-        Self {
-            broadcast_to: Default::default(),
-            priotity: Default::default(),
-        }
-    }
-}
-#[derive(Debug)]
-pub enum MessagePriority {
-    Low,
-    Medium,
-    High,
-}
-impl Default for MessagePriority {
-    fn default() -> Self {
-        Self::Medium
-    }
-}
-
-#[derive(Debug)]
-pub enum BroadCastTo {
-    Jeremy,
-    Mara,
-    Teresa,
-    All,
-}
-impl Default for BroadCastTo {
-    fn default() -> Self {
-        Self::All
-    }
-}
-
 #[embassy_executor::task(pool_size = 1)]
 pub async fn mqtt_manager(stack: WifiStack) -> ! {
-    let mut counter = 0;
     loop {
         'mqttsend: {
             if !stack.is_link_up() {
@@ -97,19 +67,25 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                     //     Timer::after_secs(1).await;
                     // };
 
+                    //TCP Connection
                     let ip4 = IpAddr::from(Ipv4Addr::from(SERVER_IP));
-                    let state: TcpClientState<3, 4096, 4096> = TcpClientState::new();
+                    let state: TcpClientState<3, POOL_TXRX_SZ, POOL_TXRX_SZ> =
+                        TcpClientState::new();
                     let tcp_client = TcpClient::new(stack, &state);
                     defmt::info!("Getting tcp connection");
                     let tcp_connection = tcp_client
                         .connect(SocketAddr::new(ip4, SERVER_PORT))
                         .await
                         .unwrap();
-
-                    let mut tx_buffer = [0_u8; BUFFER_SIZE];
-                    let mut rx_buffer = [0_u8; BUFFER_SIZE];
-                    let mqtt_config: ClientConfig<'_, 3, CountingRng> =
+                    let mut tx_buffer = [0; BUFFER_SIZE];
+                    let mut rx_buffer = [0; BUFFER_SIZE];
+                    //Client config
+                    let mut death_payload: String<STRING_SIZE> = String::new();
+                    death_payload.push_str("dead=").unwrap();
+                    death_payload.push_str(CURRENT_DEVICE_NAME).unwrap();
+                    let mut mqtt_config: ClientConfig<'_, 3, CountingRng> =
                         ClientConfig::new(MqttVersion::MQTTv5, CountingRng(12334));
+                    mqtt_config.add_will("magneporc/devices/ping", death_payload.as_bytes(), false);
                     let mut mqtt_client = MqttClient::new(
                         tcp_connection,
                         &mut tx_buffer,
@@ -120,31 +96,61 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                     );
                     defmt::info!("Attempting broker connection");
                     mqtt_client.connect_to_broker().await.unwrap();
-                    // mqtt_client.subscribe_to_topic("orsoporc/1").await.unwrap();
                     defmt::info!("Connected to broker");
+                    {
+                        let topics: Vec<&str, MQTT_SUB_TOPICS_SIZE> =
+                            Vec::from_slice(MQTT_SUB_TOPICS).unwrap();
+                        mqtt_client.subscribe_to_topics(&topics).await.unwrap();
+                    }
 
-                    'mqtt_action: {
-                        match select(MQTT_SIGNAL_RECEIVE.wait(), MQTT_SIGNAL_SEND.wait()).await {
-                            Either::First(cmd) => {}
-                            Either::Second(cmd) => {
-                                mqtt_client
+                    'mqtt_action: loop {
+                        match select3(
+                            mqtt_client.receive_message(),
+                            MQTT_SIGNAL_SEND.wait(),
+                            MQTT_SIGNAL_BROKER_PING.wait(),
+                        )
+                        .await
+                        {
+                            Either3::First(msg) => {
+                                if let Ok((topic, payload)) = msg {
+                                    defmt::info!("Message received from topic: {}", topic);
+                                    let pa = from_utf8(payload).unwrap();
+                                    defmt::info!("Content:{}", pa);
+                                    if let Some(mqtt_msg) = MqttMessage::try_new(topic, payload) {
+                                        EVENT_CHANNEL.send(Events::MessageReceived(mqtt_msg)).await;
+                                    };
+                                } else {
+                                    warn!("Network error occured");
+                                    break 'mqtt_action;
+                                }
+                            }
+                            Either3::Second(cmd) => {
+                                if mqtt_client
                                     .send_message(
-                                        "orsoporc/",
-                                        format!("Megaporc N° {}", counter).as_bytes(),
+                                        cmd.topic(),
+                                        cmd.payload().as_bytes(),
                                         QualityOfService::QoS0,
                                         false,
                                     )
                                     .await
-                                    .unwrap();
-                                defmt::info!("MQTT Message sent: Megaporc N°{} completed", counter);
-
-                                Timer::after_secs(20).await;
+                                    .is_ok()
+                                {
+                                    defmt::info!("MQTT Message sent: {}", cmd.payload().as_str());
+                                } else {
+                                    warn!("Network error occured");
+                                    break 'mqtt_action;
+                                }
+                            }
+                            Either3::Third(_) => {
+                                if mqtt_client.send_ping().await.is_ok() {
+                                    debug!("PING sent to Broker")
+                                } else {
+                                    warn!("Couln't ping the Broker")
+                                };
                             }
                         }
                     }
                 }
-
-                counter += 1;
             }
         }
     }

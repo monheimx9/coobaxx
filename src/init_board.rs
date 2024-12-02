@@ -31,6 +31,9 @@ pub fn init_heap() {
 }
 pub type WifiStack = &'static Stack<WifiDevice<'static, WifiStaDevice>>;
 
+// pub const SSID: & str = "secret_ssid";
+// pub const PASSWORD: & str = "secret_password";
+// Those are included from that file, look as build.rs
 include!("wifi_secret.rs");
 
 pub async fn initialize_wifi_stack(

@@ -6,15 +6,9 @@ use esp_println as _;
 
 use super::task_messages::{Events, EVENT_CHANNEL};
 
-pub enum Button {
-    SwitchMode,
-    SendBroadcast,
-}
-
 pub struct ButtonManager<'a> {
     input: Input<'a>,
     events: Events,
-    button: Button,
     sender: Sender<'a, CriticalSectionRawMutex, Events, 10>,
     debounce_duration: Duration,
 }
@@ -22,13 +16,11 @@ impl<'a> ButtonManager<'a> {
     pub fn new(
         input: Input<'a>,
         events: Events,
-        button: Button,
         sender: Sender<'a, CriticalSectionRawMutex, Events, 10>,
     ) -> Self {
         Self {
             input,
             events,
-            button,
             sender,
             debounce_duration: Duration::from_millis(80),
         }
@@ -53,7 +45,8 @@ impl<'a> ButtonManager<'a> {
                 continue 'mainloop;
             };
             let event = match self.events {
-                Events::SwitchBroadCastDevice => self.events,
+                Events::SelectButtonPressed => self.events.clone(),
+                Events::SendButtonPressed => self.events.clone(),
                 _ => panic!("Invalid event"),
             };
             self.sender.send(event).await;
@@ -63,14 +56,9 @@ impl<'a> ButtonManager<'a> {
 }
 
 #[embassy_executor::task]
-pub async fn handler_clear_btn(ipt: Input<'static>) {
+pub async fn handler_select_btn(ipt: Input<'static>) {
     let sender = EVENT_CHANNEL.sender();
-    let mut btn = ButtonManager::new(
-        ipt,
-        Events::SwitchBroadCastDevice,
-        Button::SwitchMode,
-        sender,
-    );
+    let mut btn = ButtonManager::new(ipt, Events::SelectButtonPressed, sender);
     defmt::info!("Button handler started");
     btn.handle_button_press().await;
 }
@@ -78,7 +66,7 @@ pub async fn handler_clear_btn(ipt: Input<'static>) {
 #[embassy_executor::task]
 pub async fn handler_send_btn(ipt: Input<'static>) {
     let sender = EVENT_CHANNEL.sender();
-    let mut btn = ButtonManager::new(ipt, Events::BroadcastMqtt, Button::SendBroadcast, sender);
+    let mut btn = ButtonManager::new(ipt, Events::SendButtonPressed, sender);
     defmt::info!("Button handler 2 started");
     btn.handle_button_press().await;
 }

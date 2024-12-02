@@ -1,5 +1,6 @@
 use crate::task::state::*;
 use crate::task::task_messages::*;
+use crate::I2CDevice;
 
 use embassy_time::Timer;
 use esp_backtrace as _;
@@ -18,27 +19,25 @@ pub async fn orchestrator() {
 
     loop {
         let event = event_receiver.receive().await;
-        defmt::info!("Event received !");
-
         '_state_manager_mutex: {
             let mut state_manager_guard = STATE_MANAGER_MUTEX.lock().await;
             let state_manager = state_manager_guard.as_mut().unwrap();
 
             match event {
-                Events::SwitchBroadCastDevice => {
-                    defmt::info!("ClearBtn event");
-
-                    state_manager.handle_clr_button().await;
+                Events::SelectButtonPressed => {
+                    defmt::info!("SelectButtonPressed Event received by orchestrator");
+                    state_manager.select_btn().await;
                 }
-                Events::Standby => {
-                    defmt::dbg!("In Standby");
+                Events::SendButtonPressed => {
+                    state_manager.send_btn().await;
+                    // MQTT_SIGNAL_SEND.signal(());
+                    SCHEDULER_START_SIGNAL.signal(());
                 }
-                Events::BroadcastMqtt => {
-                    defmt::info!("Waking up");
-                    SCHEDULER_START_SIGNAL.signal(Commands::WakeUp);
-                }
+                Events::MessageReceived(mqtt_msg) => state_manager.receive_msg(mqtt_msg).await,
             }
+            state_manager.screen_data().await;
             drop(state_manager_guard);
+            I2C_MANAGER_SIGNAL.signal(I2CDevice::Ssd1306Display);
         }
     }
 }
@@ -52,7 +51,10 @@ pub async fn scheduler() {
     }
 
     loop {
-        MQTT_SIGNAL_SEND.signal(Commands::MqttSend);
+        // MQTT_SIGNAL_RECEIVE.signal(());
+        // MQTT_SIGNAL_SEND.signal(());
+        // EVENT_CHANNEL.send(Events::SelectButtonPressed).await;
         Timer::after_secs(10).await;
+        MQTT_SIGNAL_BROKER_PING.signal(());
     }
 }
