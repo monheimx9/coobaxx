@@ -18,8 +18,6 @@ use embedded_nal_async::TcpConnect;
 use embassy_net::dns::DnsSocket;
 #[allow(unused)]
 use embedded_nal_async::{AddrType, Dns};
-#[allow(unused)]
-use smoltcp::wire::DHCP_SERVER_PORT;
 
 use embassy_time::Timer;
 use rust_mqtt::{
