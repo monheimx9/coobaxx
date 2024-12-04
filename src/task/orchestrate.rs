@@ -2,6 +2,8 @@ use crate::task::state::*;
 use crate::task::task_messages::*;
 use crate::I2CDevice;
 
+use embassy_futures::select::select;
+use embassy_futures::select::Either;
 use embassy_time::Timer;
 use esp_backtrace as _;
 
@@ -58,7 +60,14 @@ pub async fn scheduler() {
         // MQTT_SIGNAL_RECEIVE.signal(());
         // MQTT_SIGNAL_SEND.signal(());
         // EVENT_CHANNEL.send(Events::SelectButtonPressed).await;
-        Timer::after_secs(10).await;
-        MQTT_SIGNAL_BROKER_PING.signal(());
+        match select(MQTT_RESET_PING.wait(), Timer::after_secs(50)).await {
+            Either::First(_) => {
+                MQTT_RESET_PING.reset();
+                I2C_MANAGER_SIGNAL.signal(I2CDevice::RtcDs3231(crate::RtcAction::Read));
+            }
+            Either::Second(_) => {
+                MQTT_SIGNAL_BROKER_PING.signal(());
+            }
+        }
     }
 }

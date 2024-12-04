@@ -26,6 +26,7 @@ pub enum Commands {
 pub static EVENT_CHANNEL: Channel<CriticalSectionRawMutex, Events, 10> = Channel::new();
 pub static MQTT_SIGNAL_SEND: Signal<CriticalSectionRawMutex, MqttMessage> = Signal::new();
 pub static MQTT_SIGNAL_BROKER_PING: Signal<CriticalSectionRawMutex, ()> = Signal::new();
+pub static MQTT_RESET_PING: Signal<CriticalSectionRawMutex, ()> = Signal::new();
 
 pub static I2C_MANAGER_SIGNAL: Signal<CriticalSectionRawMutex, I2CDevice> = Signal::new();
 

@@ -103,11 +103,23 @@ impl AppState {
             MqttMessage::AlertMessage(a) => {}
             MqttMessage::PingMessage(p) => match p.ping_type {
                 PingType::Ping => {
-                    self.add_device(p.device_name);
-                    self.send_mqtt_ping(PingType::Pong).await
+                    if !p.is_self {
+                        self.add_device(p.device_name);
+                        self.send_mqtt_ping(PingType::Pong).await
+                    }
                 }
-                PingType::Pong => self.add_device(p.device_name),
-                PingType::Death => self.remove_device(p.device_name),
+                PingType::Pong => {
+                    if !p.is_self {
+                        self.add_device(p.device_name)
+                    }
+                }
+                PingType::Death => {
+                    if p.is_self {
+                        self.send_mqtt_ping(PingType::Pong).await
+                    } else {
+                        self.remove_device(p.device_name)
+                    }
+                }
             },
         }
     }
@@ -160,14 +172,6 @@ impl AppState {
         }
     }
 }
-
-// pub fn mqtt_settings<'a>(&self) -> Option<&'a MqttSettings> {
-//     self.mqtt_msg.as_ref()
-// }
-// pub async fn set_topics(&mut self) {
-//     self.mqtt_msg.as_mut().unwrap().set_topics().await;
-// }
-// }
 
 pub struct ScreenData {
     pub items: Vec<String<STRING_SIZE>, GLOBAL_MAX_ITEMS>,

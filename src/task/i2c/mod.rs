@@ -1,6 +1,8 @@
+use clock::time_rw;
 use defmt::Format;
 use esp_backtrace as _;
 
+pub mod clock;
 pub mod display;
 
 use display::{draw_display, CurrentScreen};
@@ -52,9 +54,7 @@ pub async fn i2c_manager(i2c_m: I2cMaster) {
                     defmt::info!("Display drawed");
                 }
 
-                I2CDevice::RtcDs3231(action) => {
-                    // draw_display(i2c_guard).await;
-                }
+                I2CDevice::RtcDs3231(action) => time_rw(i2c_guard).await,
             }
             // drop(i2c_guard);
         }

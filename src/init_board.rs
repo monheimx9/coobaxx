@@ -13,22 +13,6 @@ use esp_wifi::{
 
 use crate::utils::mk_static;
 
-use core::mem::MaybeUninit;
-
-pub fn init_heap() {
-    // 32 * 1024 makes the Wifi Init Fail with EspNoMemErr (it looks like 32 isn't enough)
-    // const HEAP_SIZE: usize = 72 * 1024;
-    // static mut HEAP: MaybeUninit<[u8; HEAP_SIZE]> = MaybeUninit::uninit();
-    //
-    // unsafe {
-    //     esp_alloc::HEAP.add_region(esp_alloc::HeapRegion::new(
-    //         HEAP.as_mut_ptr() as *mut u8,
-    //         HEAP_SIZE,
-    //         esp_alloc::MemoryCapability::Internal.into(),
-    //     ));
-    // }
-    esp_alloc::heap_allocator!(72 * 1024);
-}
 pub type WifiStack = &'static Stack<WifiDevice<'static, WifiStaDevice>>;
 
 // pub const SSID: & str = "secret_ssid";
@@ -49,7 +33,7 @@ pub async fn initialize_wifi_stack(
         Stack::new(
             wifi_interface,
             config,
-            mk_static!(StackResources<3>, StackResources::<3>::new()),
+            mk_static!(StackResources<6>, StackResources::<6>::new()),
             seed,
         )
     );

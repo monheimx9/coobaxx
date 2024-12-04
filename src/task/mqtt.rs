@@ -38,11 +38,12 @@ use crate::task::state::MqttMessage;
 use crate::task::state::CURRENT_DEVICE_NAME;
 use crate::task::task_messages::Events;
 use crate::task::task_messages::EVENT_CHANNEL;
+use crate::task::task_messages::MQTT_RESET_PING;
 use crate::task::task_messages::MQTT_SIGNAL_BROKER_PING;
 use crate::task::task_messages::MQTT_SIGNAL_SEND;
 
-const POOL_TXRX_SZ: usize = 256;
-const BUFFER_SIZE: usize = 128;
+const POOL_TXRX_SZ: usize = 256 + 128;
+const BUFFER_SIZE: usize = 256;
 const SERVER_IP: [u8; 4] = [10, 100, 3, 2];
 const SERVER_PORT: u16 = 1883;
 
@@ -95,6 +96,8 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                     let mut mqtt_config: ClientConfig<'_, 3, CountingRng> =
                         ClientConfig::new(MqttVersion::MQTTv5, CountingRng(12334));
                     mqtt_config.add_will("magneporc/devices/ping", death_payload.as_bytes(), false);
+                    mqtt_config.add_max_subscribe_qos(QualityOfService::QoS1);
+                    mqtt_config.max_packet_size = 100;
                     let mut mqtt_client = MqttClient::new(
                         tcp_connection,
                         &mut tx_buffer,
@@ -150,14 +153,16 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                                     break 'mqtt_action;
                                 }
                             }
-                            Either3::Third(_) => {
-                                if mqtt_client.send_ping().await.is_ok() {
+                            Either3::Third(_) => match mqtt_client.send_ping().await {
+                                Ok(_) => {
                                     debug!("PING sent to Broker")
-                                } else {
-                                    warn!("Couln't ping the Broker")
-                                };
-                            }
+                                }
+                                Err(e) => {
+                                    warn!("Couln't ping the Broker: reason={:?}", e)
+                                }
+                            },
                         }
+                        MQTT_RESET_PING.signal(());
                     }
                 }
             }

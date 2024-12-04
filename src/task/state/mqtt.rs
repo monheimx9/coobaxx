@@ -77,15 +77,18 @@ impl AlertMessage {
         //to=jeremy;from=mara;severity=low
         let msg = from_utf8(payload).ok()?;
         let params = Self::get_params(msg)?;
-
+        if params.len() != 3 {
+            return None;
+        };
         if !params.iter().all(|p| p.is_some()) {
             None
         } else {
-            Some(AlertMessage {
-                to_device: params[0].clone().unwrap().1.clone(),
-                from_device: params[1].clone().unwrap().1.clone(),
-                priority: MessagePriority::new_from_str(params[2].clone().unwrap().1.as_str()),
-            })
+            let res = AlertMessage {
+                to_device: params[0].clone()?.1.clone(),
+                from_device: params[1].clone()?.1.clone(),
+                priority: MessagePriority::new_from_str(params[2].clone()?.1.as_str()),
+            };
+            Some(res)
         }
     }
     fn get_params(msg: &str) -> Option<Vec<Option<(String<STRING_SIZE>, String<STRING_SIZE>)>, 3>> {
@@ -124,6 +127,7 @@ impl PingType {
 pub struct PingMessage {
     pub ping_type: PingType,
     pub device_name: String<STRING_SIZE>,
+    pub is_self: bool,
 }
 impl PingMessage {
     pub fn new_ping(ping_type: PingType) -> Self {
@@ -132,6 +136,7 @@ impl PingMessage {
         PingMessage {
             ping_type,
             device_name,
+            is_self: false,
         }
     }
     pub fn payload(&self) -> String<STRING_SIZE> {
@@ -144,8 +149,9 @@ impl PingMessage {
     fn try_new(payload: &[u8]) -> Option<Self> {
         let msg = from_utf8(payload).ok()?;
         let (k, v) = msg.split_once('=')?;
+        let mut is_self: bool = false;
         if v == CURRENT_DEVICE_NAME {
-            return None;
+            is_self = true;
         };
         let mut device_name: String<STRING_SIZE> = String::new();
         match k {
@@ -154,6 +160,7 @@ impl PingMessage {
                 Some(PingMessage {
                     ping_type: PingType::Ping,
                     device_name,
+                    is_self,
                 })
             }
             "pong" => {
@@ -161,6 +168,7 @@ impl PingMessage {
                 Some(PingMessage {
                     ping_type: PingType::Pong,
                     device_name,
+                    is_self,
                 })
             }
             "dead" => {
@@ -168,6 +176,7 @@ impl PingMessage {
                 Some(PingMessage {
                     ping_type: PingType::Death,
                     device_name,
+                    is_self,
                 })
             }
             _ => None,
@@ -248,7 +257,7 @@ impl BroadCastTo {
         match self {
             BroadCastTo::AllRecipients => BroadCastTo::SelectedRecipient(0),
             BroadCastTo::SelectedRecipient(r) => {
-                if r >= devices - 1 {
+                if r >= devices - 1 || devices == 0 {
                     BroadCastTo::AllRecipients
                 } else {
                     defmt::info!("New recipient={}", r + 1);

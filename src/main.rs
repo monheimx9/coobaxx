@@ -1,6 +1,7 @@
 #![no_std]
 #![no_main]
 
+use esp_hal::clock::CpuClock;
 use esp_hal::i2c::master::I2c;
 use esp_hal::{gpio::*, rng::Rng};
 use esp_wifi::EspWifiController;
@@ -21,12 +22,16 @@ pub mod utils;
 use utils::mk_static;
 
 mod init_board;
-use init_board::{connection, init_heap, initialize_wifi_stack, net_task};
+use init_board::{connection, initialize_wifi_stack, net_task};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
-    init_heap();
-    let peripherals = esp_hal::init(Default::default());
+    esp_alloc::heap_allocator!(64 * 1024);
+    let peripherals = esp_hal::init({
+        let mut config = esp_hal::Config::default();
+        config.cpu_clock = CpuClock::max();
+        config
+    });
     let timg0 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG0);
     let timg1 = esp_hal::timer::timg::TimerGroup::new(peripherals.TIMG1);
     esp_hal_embassy::init(timg0.timer0);
