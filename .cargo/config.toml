@@ -1,15 +1,18 @@
 [target.riscv32imac-unknown-none-elf]
-runner = "probe-rs run --chip=esp32c6"
+runner = "probe-rs run --chip=esp32c6 --rtt-scan-memory --catch-reset --allow-erase-all --chip-erase"
 
 [env]
 DEFMT_LOG = "info"
+ESP_WIFI_COUNTRY_CODE = "CH"
+ESP_WIFI_RX_QUEUE_SIZE = "10"
+ESP_WIFI_PHY_ENABLE_USB = "false"
 
 [build]
 rustflags = [
   # Required to obtain backtraces (e.g. when using the "esp-backtrace" crate.)
   # NOTE: May negatively impact performance of produced code
-  "-C",
-  "force-frame-pointers",
+  # "-C",
+  # "force-frame-pointers",
 ]
 
 target = "riscv32imac-unknown-none-elf"
