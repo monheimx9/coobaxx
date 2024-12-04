@@ -1,44 +1,16 @@
 use esp_backtrace as _;
 
-use embassy_net::{Stack, StackResources};
+use embassy_net::Runner;
 use embassy_time::{Duration, Timer};
-use esp_hal::peripherals::WIFI;
-use esp_wifi::{
-    wifi::{
-        new_with_mode, ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent,
-        WifiStaDevice, WifiState,
-    },
-    EspWifiController,
+use esp_wifi::wifi::{
+    ClientConfiguration, Configuration, WifiController, WifiDevice, WifiEvent, WifiStaDevice,
+    WifiState,
 };
-
-use crate::utils::mk_static;
-
-pub type WifiStack = &'static Stack<WifiDevice<'static, WifiStaDevice>>;
 
 // pub const SSID: & str = "secret_ssid";
 // pub const PASSWORD: & str = "secret_password";
 // Those are included from that file, look as build.rs
 include!("wifi_secret.rs");
-
-pub async fn initialize_wifi_stack(
-    esp_wc: &'static EspWifiController<'static>,
-    wifi: WIFI,
-) -> (WifiStack, WifiController<'static>) {
-    let (wifi_interface, controller) = new_with_mode(esp_wc, wifi, WifiStaDevice).unwrap();
-    let config = embassy_net::Config::dhcpv4(Default::default());
-
-    let seed = 1234;
-    let stack = &*mk_static!(
-        Stack<WifiDevice<'_, WifiStaDevice>>,
-        Stack::new(
-            wifi_interface,
-            config,
-            mk_static!(StackResources<6>, StackResources::<6>::new()),
-            seed,
-        )
-    );
-    (stack, controller)
-}
 
 #[embassy_executor::task(pool_size = 1)]
 pub async fn connection(mut controller: WifiController<'static>) {
@@ -75,6 +47,6 @@ pub async fn connection(mut controller: WifiController<'static>) {
 }
 
 #[embassy_executor::task(pool_size = 1)]
-pub async fn net_task(stack: &'static Stack<WifiDevice<'static, WifiStaDevice>>) {
-    stack.run().await
+pub async fn net_task(mut runner: Runner<'static, WifiDevice<'static, WifiStaDevice>>) {
+    runner.run().await
 }

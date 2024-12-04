@@ -5,7 +5,7 @@ use esp_backtrace as _;
 pub mod clock;
 pub mod display;
 
-use display::{draw_display, CurrentScreen};
+use display::draw_display;
 use embassy_sync::{blocking_mutex::raw::CriticalSectionRawMutex, mutex::Mutex};
 use esp_hal::{
     i2c::master::{AnyI2c, I2c},

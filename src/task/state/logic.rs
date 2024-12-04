@@ -1,7 +1,6 @@
 use heapless::String;
 
 use super::AppState;
-use super::MqttSettings;
 use super::STRING_SIZE;
 
 //Helper functions

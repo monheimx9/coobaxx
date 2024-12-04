@@ -1,20 +1,17 @@
 use core::str::from_utf8;
 use embassy_futures::select::select3;
 use embassy_futures::select::Either3;
+use embassy_net::Stack;
 use heapless::String;
 use heapless::Vec;
 
-use defmt::{debug, error, info, warn};
+use defmt::{debug, warn};
 use esp_backtrace as _;
 
-use embassy_net::tcp::client::TcpConnection;
+use core::net::IpAddr;
+use core::net::Ipv4Addr;
+use core::net::SocketAddr;
 use embassy_net::tcp::client::{TcpClient, TcpClientState};
-use embassy_net::tcp::TcpSocket;
-use embassy_net::IpAddress;
-use embassy_net::Ipv4Address;
-use embedded_nal_async::IpAddr;
-use embedded_nal_async::Ipv4Addr;
-use embedded_nal_async::SocketAddr;
 use embedded_nal_async::TcpConnect;
 
 #[allow(unused)]
@@ -29,8 +26,6 @@ use rust_mqtt::{
     packet::v5::publish_packet::QualityOfService,
     utils::rng_generator::CountingRng,
 };
-
-use crate::init_board::WifiStack;
 
 use crate::constant::STRING_SIZE;
 use crate::constant::{MQTT_SUB_TOPICS, MQTT_SUB_TOPICS_SIZE};
@@ -48,7 +43,7 @@ const SERVER_IP: [u8; 4] = [10, 100, 3, 2];
 const SERVER_PORT: u16 = 1883;
 
 #[embassy_executor::task(pool_size = 1)]
-pub async fn mqtt_manager(stack: WifiStack) -> ! {
+pub async fn mqtt_manager(stack: Stack<'static>) -> ! {
     loop {
         'mqttsend: {
             if !stack.is_link_up() {
@@ -77,8 +72,6 @@ pub async fn mqtt_manager(stack: WifiStack) -> ! {
                     // let mut sock = TcpSocket::new(stack, &mut rx_buff, &mut tx_buff);
                     // let endpoint = (Ipv4Address::from_bytes(&SERVER_IP), SERVER_PORT);
                     // sock.connect(endpoint).await.unwrap();
-
-                    let ip4 = IpAddress::from(Ipv4Address::from_bytes(&SERVER_IP));
 
                     let ip4 = IpAddr::from(Ipv4Addr::from(SERVER_IP));
                     defmt::info!("Getting tcp connection");

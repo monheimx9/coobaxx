@@ -7,10 +7,8 @@ use embassy_sync::mutex::Mutex;
 use heapless::{String, Vec};
 
 use super::i2c::display::CurrentScreen;
-use super::task_messages::EVENT_CHANNEL;
 
 mod logic;
-use logic::*;
 
 mod mqtt;
 pub use mqtt::*;

@@ -21,8 +21,8 @@ use task::{button::*, i2c::*, mqtt::*, orchestrate::*};
 pub mod utils;
 use utils::mk_static;
 
-mod init_board;
-use init_board::{connection, initialize_wifi_stack, net_task};
+mod network;
+use network::{connection, net_task};
 
 #[esp_hal_embassy::main]
 async fn main(spawner: Spawner) -> ! {
@@ -58,11 +58,25 @@ async fn main(spawner: Spawner) -> ! {
         )
         .unwrap()
     );
+    let (wifi_interface, controller) =
+        esp_wifi::wifi::new_with_mode(wifi_init, peripherals.WIFI, esp_wifi::wifi::WifiStaDevice)
+            .unwrap();
 
-    let (stack, controller) = initialize_wifi_stack(wifi_init, peripherals.WIFI).await;
+    let config = embassy_net::Config::dhcpv4(Default::default());
+
+    let seed = 1234;
+    let (stack, runner) = embassy_net::new(
+        wifi_interface,
+        config,
+        mk_static!(
+            embassy_net::StackResources<6>,
+            embassy_net::StackResources::<6>::new()
+        ),
+        seed,
+    );
 
     spawner.spawn(connection(controller)).ok();
-    spawner.spawn(net_task(stack)).ok();
+    spawner.spawn(net_task(runner)).ok();
 
     loop {
         defmt::info!("Waiting to get IP address...");

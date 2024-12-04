@@ -17,7 +17,6 @@ esp-hal = { version = "0.22.0", features = ["esp32c6", "defmt"] }
 esp-wifi = { version = "0.11.0", features = [
   "esp-alloc",
   "esp32c6",
-  "utils",
   "wifi",
   "defmt",
 ] }
@@ -35,7 +34,7 @@ embassy-executor = { version = "0.6.2", features = [
 ] }
 embassy-sync = { version = "0.6.0", features = ["defmt"] }
 embassy-time = "0.3.2"
-embassy-net = { version = "0.4.0", features = [
+embassy-net = { version = "0.5.0", features = [
   "dhcpv4",
   "defmt",
   "tcp",
@@ -51,8 +50,7 @@ heapless = { version = "0.8.0", default-features = false, features = [
   "defmt-03",
 ] }
 #Embedded related dependencies
-#cannot move to 0.8.0, missing TcpConnect interface
-embedded-nal-async = "0.7.0"
+embedded-nal-async = "0.8.0"
 embedded-hal-bus = { version = "0.2.0", features = ["async"] }
 embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
 static_cell = "2.1.0"
