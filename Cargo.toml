@@ -57,7 +57,9 @@ embedded-hal-bus = { version = "0.2.0", features = ["async"] }
 embedded-hal-async = { version = "1.0.0", features = ["defmt-03"] }
 static_cell = "2.1.0"
 defmt = "0.3.8"
-rust-mqtt = { version = "0.3.0", default-features = false, features = ["log"] }
+rust-mqtt = { version = "0.3.0", default-features = false, features = [
+  "defmt",
+] }
 embedded-graphics = { version = "0.8.1", features = ["defmt"] }
 # ssd1306 = { git = "https://github.com/embedevices-rs/ssd1306.git" }
 ssd1306 = "0.9.0"
@@ -69,6 +71,7 @@ fugit = { version = "0.3.7", features = ["defmt"] }
 esp-storage = { version = "0.4.0", features = ["esp32"] }
 embedded-storage = "0.3.1"
 defmt-rtt = "0.4.1"
+ds323x = { git = "https://github.com/DBLouis/ds323x-rs" }
 
 [build-dependencies]
 dotenvy = { version = "0.15.7" }

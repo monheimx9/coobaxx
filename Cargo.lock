@@ -152,6 +152,7 @@ dependencies = [
  "display-interface",
  "display-interface-i2c",
  "dotenvy",
+ "ds323x",
  "embassy-embedded-hal",
  "embassy-executor",
  "embassy-futures",
@@ -318,6 +319,15 @@ name = "dotenvy"
 version = "0.15.7"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "1aaf95b3e5c8f23aa320147307562d361db0ae0d51242340f558153b4eb2439b"
+
+[[package]]
+name = "ds323x"
+version = "0.5.1"
+source = "git+https://github.com/DBLouis/ds323x-rs#c395fa7f38c6717e27bcd53d1b09a2ede1a8fc46"
+dependencies = [
+ "embedded-hal 1.0.0",
+ "rtcc",
+]
 
 [[package]]
 name = "embassy-embedded-hal"
@@ -1457,15 +1467,24 @@ dependencies = [
 ]
 
 [[package]]
+name = "rtcc"
+version = "0.3.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "95973c3a0274adc4f3c5b70d2b5b85618d6de9559a6737d3293ecae9a2fc0839"
+dependencies = [
+ "chrono",
+]
+
+[[package]]
 name = "rust-mqtt"
 version = "0.3.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "8f71160765f368fd9a84e0955e2ddb6d64ac9018fee1c5323354d6d08c816b40"
 dependencies = [
+ "defmt",
  "embedded-io",
  "embedded-io-async",
  "heapless",
- "log",
  "rand_core",
 ]
 
